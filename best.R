@@ -1,29 +1,36 @@
 best <- function(state, outcome) {
     ## Read outcome data
     outcome_data <- read.csv("outcome-of-care-measures.csv", colClasses = "character")
-    ste <- unique ( outcome_data$State)
-    sl <- NULL
     
-    outcome_list <- function(o) {
-        onames <- names ( o )
-        for (i in seq_along(onames)) {
-            tmp <- strsplit (onames[i], "[.]")
-            for (j in seq_along(tmp)) {
-                a <- tmp[j]
-                if (a == "from") {
-                    t2 <- tmp[j+1:length(tmp)]
-                    sl <<- rbind(sl, t2 )
-                } else {
-                    next
-                }
-            }
-        }
-        return (sl)
-    }
+    ## grab statelist
+    ste <- unique ( outcome_data$State)
+    
+    ## grab names for outcome measures [NOTE: this is not flexible]
+    o_names <- names(outcome_data)
+    target <- matrix(o_names[c(11,17,23)],nrow=3,ncol=1)
+    rownames(target) <- c("heart attack","heart failure","pneumonia")
+    colnames(target) <- "Measure"
+    
     ## Check that state and outcome are valid
+    if (sum(ste == toupper(state)) == 0) stop ("invalid state") 
+    if (sum(rownames(target) == tolower(outcome)) == 0) stop("invalid outcome")
+    
+    ## pull desired state's data
+    state_data <- outcome_data[outcome_data[,"State"] == toupper(state),]
+    ## get all hospitals for state
+    hosp <- state_data["Hospital.Name"]
+    ## get all desired outcomes for state and convert 'Not Available' to NA
+    oc <- state_data[,target[outcome,]]
+    oc[oc == 'Not Available'] <- NA
+    
+    ## Put in data frame for analysis
+    df <- data.frame(hosp, as.numeric(oc))
+    names(df) <- c("Hospital","Outcome")
+    good <- na.omit(df)
+    best <- good[good[,"Outcome"] == min(good$Outcome),]
     
     ## Return hospital name in that state with lowest 30-day death
     ## rate
-    o <- outcome_list(outcome_data)
-    return(o)
+    o <- best$Hospital
+    return (o)
 }
