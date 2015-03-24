@@ -28,25 +28,25 @@ rankhospital <- function(state, outcome, num = "best") {
     
     ## Put in data frame for analysis
     df <- data.frame(hosp, as.numeric(oc))
-    names(df) <- c("Hospital","Outcome")
+    colnames(df) <- c("Hospital","Outcome")
     good <- na.omit(df)
     
     ord <- good [ order (good[,"Outcome"],good[,"Hospital"]),]
+    rownames(ord) <- c(1:nrow(ord))
     
-    if (num == "best") {
-        best <- good[1,"Outcome"]
-    } else if (num == "worst") {
-        best <- good[nrow(hosp),"Outcome"]
-    } else if (num > nrow(hosp)) { 
+    if (!is.numeric(num) & num == "best") {
+        h <- ord[1,"Hospital"]
+    } else if (!is.numeric(num) & num == "worst") {
+        h <- ord[nrow(ord),"Hospital"]
+    } else if (is.numeric(num) & num > nrow(ord)) { 
         return (NA)  # if gt number of hospitals return NA
     } else {
-        best <- good[4,"Hospial"]
+        h <- ord[num,"Hospital"]
     }
     
     ## Return hospital name in that state with the given rank
     ## 30-day death rate
-    o <- best$Hospital
-    return (o)
+    return (h)
     
     
 }
