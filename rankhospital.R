@@ -1,6 +1,8 @@
 rankhospital <- function(state, outcome, num = "best") {
     ## Read outcome data
-    outcome_data <- read.csv("outcome-of-care-measures.csv", colClasses = "character")
+    outcome_data <- read.csv("outcome-of-care-measures.csv", 
+                     colClasses = "character", 
+                     na.strings = c("NA","Not Available"))
     
     ## grab statelist
     ste <- unique ( outcome_data$State)
@@ -24,7 +26,6 @@ rankhospital <- function(state, outcome, num = "best") {
     
     ## get all desired outcomes for state and convert 'Not Available' to NA
     oc <- state_data[,target[outcome,]]
-    oc[oc == 'Not Available'] <- NA
     
     ## Put in data frame for analysis
     df <- data.frame(hosp, as.numeric(oc))

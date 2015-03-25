@@ -1,58 +1,62 @@
 rankall <- function(outcome, num = "best") {
     ## Read outcome data
-    outcome_data <- read.csv("outcome-of-care-measures.csv", colClasses = "character")
+    data <- read.csv("outcome-of-care-measures.csv", 
+                     colClasses = "character", 
+                     na.strings = c("NA","Not Available"))
     
-    state <- 7
-    hosp_name <- 2
-    h_attack <- 11
-    h_failure <- 17
-    pneu <- 23
+    dfrm <- data.frame(matrix(0,nrow(data),5))
     
-    ## grab statelist
-    ste <- unique ( outcome_data$State)
+    n <- list("hospital"=2, 
+              "state"=7, 
+              "heart attack"=11, 
+              "heart failure"=17,
+              "pneumonia"=23 )
     
-    ## grab names for outcome measures [NOTE: this is not flexible]
-    o_names <- names(outcome_data)
-    target <- matrix(o_names[c(11,17,23)],nrow=3,ncol=1)
-    rownames(target) <- c("heart attack","heart failure","pneumonia")
-    colnames(target) <- "Measure"
-    
-    ## Check outcome validity
-    if (sum(rownames(target) == tolower(outcome)) == 0) stop("invalid outcome")
-    if ( !is.numeric(num) & num != "best" & num != "worst") stop('invalid rank')
-    
-    ## get all hospitals for state
-    hosp <- state_data["Hospital.Name"]
+
+    outcome <- tolower(outcome)
+    if (is.null (unlist (n[outcome])) == TRUE) stop("invalid outcome")
     
     
-    ## get all desired outcomes for state and convert 'Not Available' to NA
-    oc <- state_data[,target[outcome,]]
-    oc[oc == 'Not Available'] <- NA
-    
-    ## Put in data frame for analysis
-    df <- data.frame(hosp, as.numeric(oc))
-    colnames(df) <- c("Hospital","Outcome")
-    good <- na.omit(df)
-    
-    ord <- good [ order (good[,"Outcome"],good[,"Hospital"]),]
-    rownames(ord) <- c(1:nrow(ord))
-    
-    if (!is.numeric(num) & num == "best") {
-        h <- ord[1,"Hospital"]
-    } else if (!is.numeric(num) & num == "worst") {
-        h <- ord[nrow(ord),"Hospital"]
-    } else if (is.numeric(num) & num > nrow(ord)) { 
-        return (NA)  # if gt number of hospitals return NA
-    } else {
-        h <- ord[num,"Hospital"]
+    for (i in seq_along(n)) {
+        dfrm[i] <- data[ n[[i]] ]        
     }
-    ## For each state, find the hospital of the given rank
     
-    ## Return a data frame with the hospital names and the
-    ## (abbreviated) state name
+    names(dfrm) <- c("hospital","state","heart attack","heart failure","pneumonia")
+    df$'heart attack' <- as.numeric(df$'heart attack')
+    df$'heart failure' <- as.numeric(df$'heart failure')
+    df$'pneumonia' <- as.numeric(df$'pneumonia')
+
+    rslt <- NULL
     
-    return (dfrm)
+    ## create statelist
+    ste <- sort( unique ( df$state) )
     
+    rslt <- NULL
+    for (i in seq_along(ste)) {
+        tmp <- df[df[,"state"] == ste[i],]
+        sel <- tmp[c(outcome,"hospital")]
+        sel <- na.omit(sel)
+        ord <- sel [ order ( sel[, outcome], sel[,"hospital"], na.last=TRUE, decreasing=FALSE),]
+        rnk <- c(1:nrow(ord))
+        ord <- cbind(ord,rnk)
+                
+        if (!is.numeric(num) & num == "best") {
+            h <- ord[min(rnk),"hospital"]
+        } else if (!is.numeric(num) & num == "worst") {
+            h <- ord[max(rnk),"hospital"]
+        } else if (is.numeric(num) & num > nrow(ord)) { 
+            h <- "<NA>"
+        } else {
+            h <- ord[ord[,"rnk"] == num,"hospital"]
+        }
+        rslt <- rbind(rslt, c(h,ste[i]))
+ 
+    }
     
+    colnames(rslt) <- c("hospital","state")
+    rownames(rslt) <- ste
+    r <- as.table(rslt)
+    r <- noquote(r)
+    return(r)
     
 }
